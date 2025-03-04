@@ -52,9 +52,13 @@ try:
         for index, row in dataframe.iterrows():
             if index > 2:
                 package_name = str(row['Unnamed: 23']).strip()
+
                 if not package_name or package_name.lower() == 'nan':
-                    st.error(f"Invalid package name at row {index + 1}. Skipping...")
+                    st.warning(f"Skipping row {index+1}: Invalid package name.")
                     continue
+
+                xml_filename = f"{package_name}.xml"
+                metadata_filename = "metadata.xml"
 
                 template_root[2][14][0].attrib['code'] = str(row['Unnamed: 7'])  # rating code
 
@@ -103,31 +107,25 @@ try:
                 for sales_start_date in template_root[2].iter('{http://apple.com/itunes/importer}products'):
                     sales_start_date[0][1].text = str(row['Unnamed: 34'])[0:10]
 
-                # Create package folder
-                package = f'{package_name}.itmsp'
-                xml_filename = f"{package_name}.xml"
-                metadata_filename = "metadata.xml"
-                os.makedirs(package, exist_ok=True)
-
-                # Ensure file does not already exist before moving
                 tree.write(xml_filename, encoding="utf-8", xml_declaration=True)
                 tree.write(metadata_filename, encoding="utf-8", xml_declaration=True)
 
-                for file in [xml_filename, metadata_filename]:
-                    destination = os.path.join(package, file)
-                    if os.path.exists(destination):
-                        os.remove(destination)  # Remove existing file
-                    shutil.move(file, package)
+                if not os.path.exists(xml_filename):
+                    st.error(f"XML file not created: {xml_filename}")
+                    continue  # Skip this iteration
 
-                package_dest = os.path.join(package_folder, package)
-                if os.path.exists(package_dest):
-                    shutil.rmtree(package_dest)  # Remove existing package before moving
-                shutil.move(package, package_folder)
+                # Move XML file to folder
+                package_path = os.path.join(package_folder, package_name)
+                os.makedirs(package_path, exist_ok=True)
 
-                xml_dest = os.path.join(xml_folder, xml_filename)
+                shutil.move(xml_filename, package_path)
+                shutil.move(metadata_filename, package_path)
+
+                # Move package folder to XML folder
+                xml_dest = os.path.join(xml_folder, f"{package_name}.xml")
                 if os.path.exists(xml_dest):
-                    os.remove(xml_dest)  # Remove existing XML before moving
-                shutil.move(xml_filename, xml_folder)
+                    os.remove(xml_dest)
+                shutil.move(os.path.join(package_path, xml_filename), xml_folder)
 
         zip_name = container_id.text if container_id.text else "default_zip"
 
