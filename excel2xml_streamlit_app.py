@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from lxml import etree as et
+from zipfile import ZipFile
 import shutil
 import os
 
@@ -14,20 +15,15 @@ with col1:
     share = st.checkbox("Asset Share (optional)")
     bundle = st.checkbox("Bundle Only (optional)")
     with open('TEMPLATES/XXXXX_SX_Metadata_XX_iTunes_TV.xlsx', 'rb') as my_file:
-        st.download_button(
-            label='Download Excel Template',
-            data=my_file,
-            file_name='XXXXX_SX_Metadata_XX_iTunes_TV.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
+        st.download_button(label='Download Excel Template', data=my_file, file_name='XXXXX_SX_Metadata_XX_iTunes_TV.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 with col2:
     option = st.radio(
         "Select a Locale Name",
-        ("en-CA", "en-AU", "en-GB", "de-DE", "fr-FR", "us-US")
+        ("en-CA", "en-AU", "en-GB", "de-DE", "fr-FR", "us-US")  # Added "us-US"
     )
 
-uploaded_file = st.file_uploader("Upload Excel Metadata File")
+uploaded_file = st.file_uploader("Create XML")
 
 try:
     if uploaded_file is not None:
@@ -37,14 +33,14 @@ try:
             option += "_ASSET_SHARE"
 
         xml_template_path = f'TEMPLATES/iTunes_TV_EPISODE_TEMPLATE_v5-3_{option}.xml'
+
         if not os.path.exists(xml_template_path):
             st.error(f"Template XML file not found: {xml_template_path}")
             st.stop()
 
         tree = et.parse(xml_template_path)
         template_root = tree.getroot()
-
-        package_folder = "iTunes_Package_with_XML"
+        package_folder = "iTunes Package with XML"
         xml_folder = "XML"
         os.makedirs(package_folder, exist_ok=True)
         os.makedirs(xml_folder, exist_ok=True)
@@ -57,9 +53,6 @@ try:
                     st.warning(f"Skipping row {index+1}: Invalid package name.")
                     continue
 
-                xml_filename = f"{package_name}.xml"
-                metadata_filename = "metadata.xml"
-
                 template_root[2][14][0].attrib['code'] = str(row['Unnamed: 7'])  # rating code
 
                 if bundle:
@@ -71,11 +64,11 @@ try:
                         shared_asset_id.attrib['vendor_id'] = str(row['Unnamed: 27'])
 
                 if "en" in option and "_ASSET_SHARE" not in option:
-                    template_root[2][16][0][0][1].text = package_name + '.mov'
-                    template_root[2][16][0][1][1].text = package_name + '.scc'
+                    template_root[2][16][0][0][1].text = package_name + '.mov'  # mov file name
+                    template_root[2][16][0][1][1].text = package_name + '.scc'  # scc file name
 
                 if "en" not in option and "_ASSET_SHARE" not in option:
-                    template_root[2][15][0][0][1].text = package_name + ".mov"
+                    template_root[2][15][0][0][1].text = package_name + ".mov"  # mov file name
 
                 for container_id in template_root[2].iter('{http://apple.com/itunes/importer}container_id'):
                     container_id.text = str(row['ITUNES'])
@@ -107,30 +100,18 @@ try:
                 for sales_start_date in template_root[2].iter('{http://apple.com/itunes/importer}products'):
                     sales_start_date[0][1].text = str(row['Unnamed: 34'])[0:10]
 
-                tree.write(xml_filename, encoding="utf-8", xml_declaration=True)
-                tree.write(metadata_filename, encoding="utf-8", xml_declaration=True)
+                package = f'{package_name}.itmsp'
+                xml = "metadata.xml"
+                os.makedirs(package, exist_ok=True)
 
-                if not os.path.exists(xml_filename):
-                    st.error(f"XML file not created: {xml_filename}")
-                    continue  # Skip this iteration
+                tree.write(f'{package_name}.xml', encoding="utf-8", xml_declaration=True)
+                tree.write(xml, encoding="utf-8", xml_declaration=True)
 
-                # Move XML file to folder
-                package_path = os.path.join(package_folder, package_name)
-                os.makedirs(package_path, exist_ok=True)
-
-                shutil.move(xml_filename, package_path)
-                shutil.move(metadata_filename, package_path)
-
-                # Move package folder to XML folder
-                xml_dest = os.path.join(xml_folder, f"{package_name}.xml")
-                if os.path.exists(xml_dest):
-                    os.remove(xml_dest)
-                shutil.move(os.path.join(package_path, xml_filename), xml_folder)
+                shutil.move(xml, package)
+                shutil.move(package, package_folder)
+                shutil.move(f'{package_name}.xml', xml_folder)
 
         zip_name = container_id.text if container_id.text else "default_zip"
-
-        if os.path.exists(zip_name):
-            shutil.rmtree(zip_name)
         os.makedirs(zip_name, exist_ok=True)
 
         shutil.move(package_folder, zip_name)
