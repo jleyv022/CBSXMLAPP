@@ -19,7 +19,7 @@ with col1:
 with col2:
     option = st.radio(
         "Select a Locale Name",
-        ("en-CA", "en-AU", "en-GB", "de-DE", "fr-FR")
+        ("en-CA", "en-AU", "en-GB", "de-DE", "fr-FR", "us-US")
     )
 
 uploaded_file = st.file_uploader("Create XML")
