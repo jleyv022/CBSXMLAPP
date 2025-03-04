@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from lxml import etree as et
-from zipfile import ZipFile
 import shutil
 import os
 
@@ -34,19 +33,9 @@ try:
     if uploaded_file is not None:
         dataframe = pd.read_excel(uploaded_file)
 
-        # Ensure required columns exist
-        expected_columns = ['Unnamed: 23', 'ITUNES', 'TITLE', 'Unnamed: 7', 'Unnamed: 24', 'Unnamed: 27', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 14', 'Unnamed: 15', 'Unnamed: 34']
-        missing_columns = [col for col in expected_columns if col not in dataframe.columns]
-
-        if missing_columns:
-            st.error(f"Missing expected columns: {', '.join(missing_columns)}")
-            st.stop()
-
-        # Adjust option if Asset Share is checked
         if share:
             option += "_ASSET_SHARE"
 
-        # Verify XML template exists
         xml_template_path = f'TEMPLATES/iTunes_TV_EPISODE_TEMPLATE_v5-3_{option}.xml'
         if not os.path.exists(xml_template_path):
             st.error(f"Template XML file not found: {xml_template_path}")
@@ -55,7 +44,6 @@ try:
         tree = et.parse(xml_template_path)
         template_root = tree.getroot()
 
-        # Create necessary directories
         package_folder = "iTunes_Package_with_XML"
         xml_folder = "XML"
         os.makedirs(package_folder, exist_ok=True)
@@ -79,11 +67,11 @@ try:
                         shared_asset_id.attrib['vendor_id'] = str(row['Unnamed: 27'])
 
                 if "en" in option and "_ASSET_SHARE" not in option:
-                    template_root[2][16][0][0][1].text = package_name + '.mov'  # mov file name
-                    template_root[2][16][0][1][1].text = package_name + '.scc'  # scc file name
+                    template_root[2][16][0][0][1].text = package_name + '.mov'
+                    template_root[2][16][0][1][1].text = package_name + '.scc'
 
                 if "en" not in option and "_ASSET_SHARE" not in option:
-                    template_root[2][15][0][0][1].text = package_name + ".mov"  # mov file name
+                    template_root[2][15][0][0][1].text = package_name + ".mov"
 
                 for container_id in template_root[2].iter('{http://apple.com/itunes/importer}container_id'):
                     container_id.text = str(row['ITUNES'])
@@ -117,29 +105,42 @@ try:
 
                 # Create package folder
                 package = f'{package_name}.itmsp'
-                xml = "metadata.xml"
+                xml_filename = f"{package_name}.xml"
+                metadata_filename = "metadata.xml"
                 os.makedirs(package, exist_ok=True)
 
-                tree.write(f'{package_name}.xml', encoding="utf-8", xml_declaration=True)
-                tree.write(xml, encoding="utf-8", xml_declaration=True)
+                # Ensure file does not already exist before moving
+                tree.write(xml_filename, encoding="utf-8", xml_declaration=True)
+                tree.write(metadata_filename, encoding="utf-8", xml_declaration=True)
 
-                # Move files into their respective directories
-                shutil.move(os.path.abspath(xml), os.path.abspath(package))
-                shutil.move(os.path.abspath(package), os.path.abspath(package_folder))
-                shutil.move(os.path.abspath(f'{package_name}.xml'), os.path.abspath(xml_folder))
+                for file in [xml_filename, metadata_filename]:
+                    destination = os.path.join(package, file)
+                    if os.path.exists(destination):
+                        os.remove(destination)  # Remove existing file
+                    shutil.move(file, package)
 
-        # Ensure container_id is available before using it as a folder name
+                package_dest = os.path.join(package_folder, package)
+                if os.path.exists(package_dest):
+                    shutil.rmtree(package_dest)  # Remove existing package before moving
+                shutil.move(package, package_folder)
+
+                xml_dest = os.path.join(xml_folder, xml_filename)
+                if os.path.exists(xml_dest):
+                    os.remove(xml_dest)  # Remove existing XML before moving
+                shutil.move(xml_filename, xml_folder)
+
         zip_name = container_id.text if container_id.text else "default_zip"
 
+        if os.path.exists(zip_name):
+            shutil.rmtree(zip_name)
         os.makedirs(zip_name, exist_ok=True)
-        shutil.move(os.path.abspath(package_folder), os.path.abspath(zip_name))
-        shutil.move(os.path.abspath(xml_folder), os.path.abspath(zip_name))
 
-        # Create zip archive
-        shutil.make_archive(zip_name, 'zip', os.path.abspath(zip_name))
+        shutil.move(package_folder, zip_name)
+        shutil.move(xml_folder, zip_name)
+
+        shutil.make_archive(zip_name, 'zip', zip_name)
         shutil.rmtree(zip_name)
 
-        # Offer zip file for download
         with open(zip_name + '.zip', 'rb') as f:
             st.download_button('Download Zip', f, file_name=zip_name + '.zip')
 
