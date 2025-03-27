@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package xmlns="http://apple.com/itunes/importer" version="tv5.3">
+  <provider>cstv</provider> 
+  <language>en-US</language> 
+  <video>
+        <type>tv</type>
+        <subtype>episode</subtype>
+        <container_id>CBS_I_LOVE_LUCY_INTL_SEASON_COMPLETE_SERIES</container_id> 
+        <container_position>1</container_position>
+        <vendor_id>CBS_I_LOVE_LUCY_INTL_SEASON_COMP_101_HD</vendor_id> 
+        <episode_production_number>101</episode_production_number>
+        <countries_of_origin>
+            <country primary="true">US</country>
+        </countries_of_origin>
+        <production_countries>
+            <country primary="true">US</country>
+        </production_countries>
+        <original_spoken_locale>en-US</original_spoken_locale>
+        <title>Season 1, Episode 1: The Girls Want to Go to A Nightclub</title>
+        <studio_release_title>The Girls Want to Go to A Nightclub</studio_release_title>
+        <description>For the Mertzes' anniversary, the guys want to go to the fights and the women want to go to a nightclub.</description>
+        <release_date>1951-10-15</release_date>
+        <copyright_cline>©1951 CBS Corp. All Rights Reserved.</copyright_cline>
+        <ratings>
+            <rating system="us-tv" code="TV-G"/>
+        </ratings>
+        <share_assets vendor_id="CBS_I_LOVE_LUCY_101"/>
+        <products>
+            <product>
+                <territory>US</territory>
+                <sales_start_date>2025-12-22</sales_start_date>
+                <cleared_for_sale>true</cleared_for_sale>
+                <bundle_only>true</bundle_only>
+            </product>
+        </products>
+    </video>
+</package>
