@@ -74,4 +74,59 @@ try:
                 if "en" not in option and "_ASSET_SHARE" not in option:
                     template_root[2][15][0][0][1].text = package_name + ".mov"  # mov file name
 
-                for container_id in template_root[2].iter('{http://apple.com/itunes/importer}
+                # Fix: Ensuring this string literal is correctly formatted
+                for container_id in template_root[2].iter('{http://apple.com/itunes/importer}container_id'):
+                    container_id.text = str(row['ITUNES'])
+
+                for container_position in template_root[2].iter('{http://apple.com/itunes/importer}container_position'):
+                    container_position.text = str(row['Unnamed: 24'])
+
+                for vendor_id in template_root[2].iter('{http://apple.com/itunes/importer}vendor_id'):
+                    vendor_id.text = str(row['Unnamed: 23'])
+
+                for episode_production_number in template_root[2].iter('{http://apple.com/itunes/importer}episode_production_number'):
+                    episode_production_number.text = str(row['TITLE'])
+
+                for title in template_root[2].iter('{http://apple.com/itunes/importer}title'):
+                    title.text = str(row['Unnamed: 3'])
+
+                for studio_release_title in template_root[2].iter('{http://apple.com/itunes/importer}studio_release_title'):
+                    studio_release_title.text = str(row['Unnamed: 4'])
+
+                for description in template_root[2].iter('{http://apple.com/itunes/importer}description'):
+                    description.text = str(row['Unnamed: 5'])
+
+                for release_date in template_root[2].iter('{http://apple.com/itunes/importer}release_date'):
+                    release_date.text = str(row['Unnamed: 14'])[0:10]
+
+                for copyright in template_root[2].iter('{http://apple.com/itunes/importer}copyright_cline'):
+                    copyright.text = str(row['Unnamed: 15'])
+
+                for sales_start_date in template_root[2].iter('{http://apple.com/itunes/importer}products'):
+                    sales_start_date[0][1].text = str(row['Unnamed: 34'])[0:10]
+
+                package = f'{package_name}.itmsp'
+                xml = "metadata.xml"
+                os.makedirs(package, exist_ok=True)
+
+                tree.write(f'{package_name}.xml', encoding="utf-8", xml_declaration=True)
+                tree.write(xml, encoding="utf-8", xml_declaration=True)
+
+                shutil.move(xml, package)
+                shutil.move(package, package_folder)
+                shutil.move(f'{package_name}.xml', xml_folder)
+
+        zip_name = container_id.text if container_id.text else "default_zip"
+        os.makedirs(zip_name, exist_ok=True)
+
+        shutil.move(package_folder, zip_name)
+        shutil.move(xml_folder, zip_name)
+
+        shutil.make_archive(zip_name, 'zip', zip_name)
+        shutil.rmtree(zip_name)
+
+        with open(zip_name + '.zip', 'rb') as f:
+            st.download_button('Download Zip', f, file_name=zip_name + '.zip')
+
+except Exception as e:
+    st.error(f"An error occurred: {e}")
