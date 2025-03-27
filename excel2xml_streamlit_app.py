@@ -33,9 +33,15 @@ try:
             option += "_ASSET_SHARE"
 
         xml_template_path = f'TEMPLATES/iTunes_TV_EPISODE_TEMPLATE_v5-3_{option}.xml'
+        default_template_path = 'TEMPLATES/iTunes_TV_EPISODE_TEMPLATE_v5-3_us-US.xml'  # Fallback template
+
+        # Check if the template exists, fallback if not
+        if not os.path.exists(xml_template_path):
+            st.warning(f"Template XML file not found: {xml_template_path}. Using default template.")
+            xml_template_path = default_template_path
 
         if not os.path.exists(xml_template_path):
-            st.error(f"Template XML file not found: {xml_template_path}")
+            st.error(f"Default template also not found. Please check your TEMPLATES directory.")
             st.stop()
 
         tree = et.parse(xml_template_path)
