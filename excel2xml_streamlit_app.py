@@ -13,7 +13,7 @@ with col1:
     share = st.checkbox("Asset Share (optional)")
     bundle = st.checkbox("Bundle Only (optional)")
     with open('TEMPLATES/XXXXX_SX_Metadata_XX_iTunes_TV.xlsx', 'rb') as my_file:
-        st.download_button(label = 'Download Excel Template', data = my_file, file_name = 'XXXXX_SX_Metadata_XX_iTunes_TV.xlsx', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        st.download_button(label='Download Excel Template', data=my_file, file_name='XXXXX_SX_Metadata_XX_iTunes_TV.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 with col2:
     option = st.radio(
@@ -26,31 +26,30 @@ try:
     if uploaded_file is not None:
         dataframe = pd.read_excel(uploaded_file)
 
+        # Add "_ASSET_SHARE" if the checkbox is selected
         if share:
-            option = option + "_ASSET_SHARE"  # Add ASSET_SHARE if checkbox is checked
+            option = option + "_ASSET_SHARE"
 
-        # Try loading the template with the ASSET_SHARE version
-        xml_template_path = f'TEMPLATES/iTunes_TV_EPISODE_TEMPLATE_v5-3_{option}.xml'
+        # Force template to use us-US for button press
+        if "us-US" in option:
+            xml_template_path = "TEMPLATES/iTunes_TV_EPISODE_TEMPLATE_v5-3_us-US.xml"
+        else:
+            xml_template_path = f'TEMPLATES/iTunes_TV_EPISODE_TEMPLATE_v5-3_{option}.xml'
 
-        if not os.path.exists(xml_template_path):
-            # Fall back to default template if ASSET_SHARE template is not found
-            st.warning(f"Template {xml_template_path} not found. Falling back to default template.")
-            xml_template_path = f'TEMPLATES/iTunes_TV_EPISODE_TEMPLATE_v5-3_{option.replace("_ASSET_SHARE", "")}.xml'
-
-        # Check if the default template exists
+        # Check if the correct template exists for the selected option
         if not os.path.exists(xml_template_path):
             st.error(f"Template file not found: {xml_template_path}")
             st.stop()
 
-        # Load the template
+        # Load the template XML
         tree = et.parse(xml_template_path)
         template_root = tree.getroot()
 
         # Create folders for the output XML files and iTunes package
         package_folder = "iTunes Package with XML"
-        os.makedirs(package_folder)
+        os.makedirs(package_folder, exist_ok=True)
         xml_folder = "XML"
-        os.makedirs(xml_folder)
+        os.makedirs(xml_folder, exist_ok=True)
 
         # Iterate over the rows of the dataframe and populate the template with values
         for index, row in dataframe.iterrows():
@@ -58,7 +57,7 @@ try:
                 package_name = str(row['Unnamed: 23']).strip()
 
                 if not package_name or package_name.lower() == 'nan':
-                    st.warning(f"Skipping row {index+1}: Invalid package name.")
+                    st.warning(f"Skipping row {index + 1}: Invalid package name.")
                     continue
 
                 # Apply values from the Excel file to the XML template
@@ -116,8 +115,8 @@ try:
                 # Create package folders
                 package = f'{package_name}.itmsp'
                 xml = "metadata.xml"
-                os.makedirs(package)
-                package_path = os.path.abspath(package)    
+                os.makedirs(package, exist_ok=True)
+                package_path = os.path.abspath(package)
 
                 # Save XML files to disk
                 tree.write(f'{package_name}.xml', encoding="utf-8", xml_declaration=True)
